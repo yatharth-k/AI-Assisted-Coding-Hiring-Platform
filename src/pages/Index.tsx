@@ -3,10 +3,17 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Code, Users, Star, Github } from "lucide-react";
+import { ArrowRight, Code, Users, Star, Github, LogOut } from "lucide-react";
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 text-white">
       {/* Navigation */}
@@ -16,16 +23,33 @@ const Index = () => {
           <span className="text-2xl font-bold">CodeArena</span>
         </div>
         <div className="flex items-center space-x-4">
-          <Link to="/login">
-            <Button variant="ghost" className="text-white hover:text-purple-300">
-              Login
-            </Button>
-          </Link>
-          <Link to="/signup">
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              Get Started
-            </Button>
-          </Link>
+          {user ? (
+            <>
+              <span className="text-slate-300">Welcome, {user.user_metadata?.full_name || user.email}</span>
+              <Link to="/dashboard">
+                <Button variant="ghost" className="text-white hover:text-purple-300">
+                  Dashboard
+                </Button>
+              </Link>
+              <Button variant="ghost" onClick={handleSignOut} className="text-white hover:text-purple-300">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" className="text-white hover:text-purple-300">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  Get Started
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -40,11 +64,19 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link to="/dashboard">
-              <Button size="lg" className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg">
-                Start Practicing <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button size="lg" className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg">
+                  Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/signup">
+                <Button size="lg" className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg">
+                  Start Practicing <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            )}
             <Link to="/contests">
               <Button size="lg" variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-slate-900 px-8 py-3 text-lg">
                 Join a Contest

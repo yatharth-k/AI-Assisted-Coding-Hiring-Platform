@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Code, Github, User, Users } from "lucide-react";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -17,15 +19,76 @@ const Signup = () => {
     confirmPassword: '',
     role: 'developer'
   });
+  const [loading, setLoading] = useState(false);
+  const { signUp, signInWithGoogle, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSignup = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Signup attempt:', formData);
-    // TODO: Implement registration logic
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await signUp(formData.email, formData.password, formData.name);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Account created successfully! Please check your email to verify your account.",
+      });
+      navigate('/login');
+    }
+    
+    setLoading(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleGoogleSignup = async () => {
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,6 +120,7 @@ const Signup = () => {
                   className="bg-slate-700 border-slate-600 text-white"
                   placeholder="Enter your full name"
                   required
+                  disabled={loading}
                 />
               </div>
               
@@ -70,6 +134,7 @@ const Signup = () => {
                   className="bg-slate-700 border-slate-600 text-white"
                   placeholder="Enter your email"
                   required
+                  disabled={loading}
                 />
               </div>
               
@@ -81,8 +146,10 @@ const Signup = () => {
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white"
-                  placeholder="Create a password"
+                  placeholder="Create a password (min 6 characters)"
                   required
+                  disabled={loading}
+                  minLength={6}
                 />
               </div>
               
@@ -96,6 +163,7 @@ const Signup = () => {
                   className="bg-slate-700 border-slate-600 text-white"
                   placeholder="Confirm your password"
                   required
+                  disabled={loading}
                 />
               </div>
               
@@ -105,6 +173,7 @@ const Signup = () => {
                   value={formData.role}
                   onValueChange={(value) => handleInputChange('role', value)}
                   className="space-y-2"
+                  disabled={loading}
                 >
                   <div className="flex items-center space-x-2 p-3 rounded-lg bg-slate-700 border border-slate-600">
                     <RadioGroupItem value="developer" id="developer" />
@@ -123,16 +192,25 @@ const Signup = () => {
                 </RadioGroup>
               </div>
               
-              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-                Create Account
+              <Button 
+                type="submit" 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                disabled={loading}
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
             
             <Separator className="bg-slate-600" />
             
-            <Button variant="outline" className="w-full border-slate-600 text-white hover:bg-slate-700">
+            <Button 
+              variant="outline" 
+              className="w-full border-slate-600 text-white hover:bg-slate-700"
+              onClick={handleGoogleSignup}
+              disabled={loading}
+            >
               <Github className="mr-2 h-4 w-4" />
-              Sign up with GitHub
+              Sign up with Google
             </Button>
             
             <div className="text-center text-sm text-slate-400">
