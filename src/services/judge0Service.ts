@@ -1,4 +1,3 @@
-
 interface ExecutionResult {
   stdout: string | null;
   stderr: string | null;
@@ -18,9 +17,15 @@ interface SubmissionData {
   expected_output?: string;
 }
 
+interface Judge0Error {
+  message: string;
+  details?: string;
+  statusCode?: number;
+}
+
 class Judge0Service {
-  private readonly baseUrl = 'https://judge0-ce.p.rapidapi.com';
-  private readonly apiKey = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'; // Judge0 API key
+  // Use our secure backend instead of direct Judge0 API
+  private readonly baseUrl = '/api';
   
   private readonly languageMap: Record<string, number> = {
     javascript: 63, // Node.js
@@ -31,52 +36,59 @@ class Judge0Service {
     typescript: 74, // TypeScript
   };
 
-  async submitCode(data: SubmissionData): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/submissions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-RapidAPI-Key': this.apiKey,
-        'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-      },
-      body: JSON.stringify({
-        source_code: btoa(data.source_code), // Base64 encode
-        language_id: data.language_id,
-        stdin: data.stdin ? btoa(data.stdin) : null,
-        expected_output: data.expected_output ? btoa(data.expected_output) : null,
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Judge0 submission failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return result.token;
+  private log(message: string, data?: unknown) {
+    const timestamp = new Date().toISOString();
+    console.log(`[Judge0Service ${timestamp}] ${message}`, data || '');
   }
 
-  async getResult(token: string): Promise<ExecutionResult> {
-    const response = await fetch(`${this.baseUrl}/submissions/${token}`, {
-      headers: {
-        'X-RapidAPI-Key': this.apiKey,
-        'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-      }
-    });
+  private handleApiError(response: Response, context: string): Judge0Error {
+    const statusCode = response.status;
+    let message = `Backend API error (${statusCode})`;
+    let details = '';
 
-    if (!response.ok) {
-      throw new Error(`Failed to get result: ${response.statusText}`);
+    switch (statusCode) {
+      case 400:
+        message = 'Invalid request parameters';
+        details = 'Check your source code and language selection';
+        break;
+      case 401:
+        message = 'Authentication failed';
+        details = 'Please log in to execute code';
+        break;
+      case 429:
+        message = 'Rate limit exceeded';
+        details = 'Too many requests, please wait before trying again';
+        break;
+      case 403:
+        message = 'Access forbidden';
+        details = 'Code execution blocked due to security policy';
+        break;
+      case 500:
+        message = 'Server error';
+        details = 'The code execution service is temporarily unavailable';
+        break;
+      default:
+        details = `Unexpected error occurred (${statusCode})`;
     }
 
-    const result = await response.json();
-    
-    return {
-      stdout: result.stdout ? atob(result.stdout) : null,
-      stderr: result.stderr ? atob(result.stderr) : null,
-      compile_output: result.compile_output ? atob(result.compile_output) : null,
-      status: result.status,
-      time: result.time,
-      memory: result.memory
-    };
+    this.log(`API Error in ${context}: ${message}`, { statusCode, details });
+    return { message, details, statusCode };
+  }
+
+  private validateInput(data: SubmissionData): Judge0Error | null {
+    if (!data.source_code || data.source_code.trim().length === 0) {
+      return { message: 'Source code cannot be empty' };
+    }
+
+    if (!data.language_id || !Object.values(this.languageMap).includes(data.language_id)) {
+      return { message: 'Invalid or unsupported language' };
+    }
+
+    if (data.source_code.length > 100000) { // 100KB limit
+      return { message: 'Source code too large (max 100KB)' };
+    }
+
+    return null;
   }
 
   async executeCode(
@@ -85,41 +97,85 @@ class Judge0Service {
     stdin?: string,
     expectedOutput?: string
   ): Promise<ExecutionResult> {
+    this.log('Starting code execution', { 
+      language, 
+      codeLength: sourceCode.length,
+      hasStdin: !!stdin,
+      hasExpectedOutput: !!expectedOutput 
+    });
+
     const languageId = this.languageMap[language.toLowerCase()];
     if (!languageId) {
-      throw new Error(`Unsupported language: ${language}`);
+      const supportedLanguages = Object.keys(this.languageMap).join(', ');
+      throw new Error(`Unsupported language: ${language}. Supported languages: ${supportedLanguages}`);
     }
 
-    const token = await this.submitCode({
+    // Validate input
+    const validationError = this.validateInput({
       source_code: sourceCode,
       language_id: languageId,
       stdin,
       expected_output: expectedOutput
     });
-
-    // Poll for result
-    let attempts = 0;
-    const maxAttempts = 20;
-    
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-      
-      const result = await this.getResult(token);
-      
-      // Status 1 = "In Queue", Status 2 = "Processing"
-      if (result.status.id !== 1 && result.status.id !== 2) {
-        return result;
-      }
-      
-      attempts++;
+    if (validationError) {
+      throw new Error(validationError.message);
     }
-    
-    throw new Error('Execution timeout - code took too long to execute');
+
+    try {
+      const response = await fetch(`${this.baseUrl}/run-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceCode,
+          language,
+          stdin,
+          expectedOutput
+        })
+      });
+
+      if (!response.ok) {
+        const error = this.handleApiError(response, 'executeCode');
+        throw new Error(error.message);
+      }
+
+      const result = await response.json();
+      
+      // Validate result structure
+      if (!result.status || typeof result.status.id !== 'number') {
+        throw new Error('Invalid result format from backend');
+      }
+
+      this.log('Code executed successfully', { 
+        statusId: result.status.id, 
+        statusDescription: result.status.description 
+      });
+
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        this.log('Code execution failed', { error: error.message });
+        throw error;
+      }
+      throw new Error('Unknown error during code execution');
+    }
   }
 
-  getLanguageId(language: string): number {
-    return this.languageMap[language.toLowerCase()] || 71; // Default to Python
+  // Utility method to get supported languages
+  getSupportedLanguages(): string[] {
+    return Object.keys(this.languageMap);
+  }
+
+  // Utility method to get language ID
+  getLanguageId(language: string): number | null {
+    return this.languageMap[language.toLowerCase()] || null;
+  }
+
+  // Utility method to check if language is supported
+  isLanguageSupported(language: string): boolean {
+    return language.toLowerCase() in this.languageMap;
   }
 }
 
-export const judge0Service = new Judge0Service();
+export { Judge0Service };

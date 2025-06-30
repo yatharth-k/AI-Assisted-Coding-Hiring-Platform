@@ -1,13 +1,13 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Code, Star, Clock, Trophy, ArrowRight, User, Settings } from "lucide-react";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const problems = [
     { id: 1, title: "Two Sum", difficulty: "Easy", category: "Arrays", solved: true, xp: 10 },
     { id: 2, title: "Reverse Linked List", difficulty: "Easy", category: "Linked Lists", solved: true, xp: 10 },
@@ -141,7 +141,12 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-yellow-400">{problem.xp} XP</span>
-                        <Button size="sm" variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white"
+                          onClick={() => navigate(`/editor/${problem.id}`)}
+                        >
                           {problem.solved ? 'Review' : 'Solve'}
                         </Button>
                       </div>
@@ -176,7 +181,11 @@ const Dashboard = () => {
                         {contest.participants} registered
                       </div>
                     </div>
-                    <Button size="sm" className="mt-3 w-full bg-purple-600 hover:bg-purple-700">
+                    <Button
+                      size="sm"
+                      className="mt-3 w-full bg-purple-600 hover:bg-purple-700"
+                      onClick={() => navigate('/contests')}
+                    >
                       Register
                     </Button>
                   </div>
@@ -241,12 +250,17 @@ const Dashboard = () => {
                     View Leaderboard
                   </Button>
                 </Link>
-                <Link to="/practice">
-                  <Button variant="outline" className="w-full border-slate-600 text-white hover:bg-slate-700">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Random Practice
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  className="w-full border-slate-600 text-white hover:bg-slate-700"
+                  onClick={() => {
+                    const random = problems[Math.floor(Math.random() * problems.length)];
+                    navigate(`/editor/${random.id}`);
+                  }}
+                >
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Random Practice
+                </Button>
               </CardContent>
             </Card>
           </div>

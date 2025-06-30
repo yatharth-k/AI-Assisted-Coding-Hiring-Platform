@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Code, Play, Upload, ArrowLeft, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Link } from 'react-router-dom';
+import { problems } from "@/data/problems";
 
 const Editor = () => {
   const [language, setLanguage] = useState('python');
@@ -17,25 +17,114 @@ def two_sum(nums, target):
     pass`);
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState([
-    { id: 1, passed: true, input: '[2,7,11,15], 9', expected: '[0,1]', actual: '[0,1]' },
-    { id: 2, passed: true, input: '[3,2,4], 6', expected: '[1,2]', actual: '[1,2]' },
-    { id: 3, passed: false, input: '[3,3], 6', expected: '[0,1]', actual: 'null' },
-  ]);
+  const [testResults, setTestResults] = useState<any[]>([]);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [reviewResult, setReviewResult] = useState<string | null>(null);
+  const [description, setDescription] = useState<string>(
+    `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\nYou can return the answer in any order.`
+  );
 
-  const handleRunCode = () => {
+  const problem = problems[0]; // For now, use the first problem (Two Sum)
+  const publicTestCases = problem.publicTestCases;
+  const privateTestCases = problem.privateTestCases;
+
+  const handleRunCode = async () => {
     setIsRunning(true);
-    // Simulate code execution
-    setTimeout(() => {
-      setOutput('Code executed successfully!\nTest case 1: Passed\nTest case 2: Passed\nTest case 3: Failed');
-      setIsRunning(false);
-    }, 2000);
+    setTestResults([]);
+    try {
+      const res = await fetch("/api/execute-with-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language,
+          testCases: [...publicTestCases, ...privateTestCases]
+        })
+      });
+      const data = await res.json();
+      setTestResults(data.results.slice(0, publicTestCases.length));
+    } catch (e: any) {
+      setTestResults([{ input: "Error", expected: "", actual: e.message, passed: false }]);
+    }
+    setIsRunning(false);
   };
 
   const handleSubmit = () => {
     console.log('Submitting solution:', { language, code });
     // TODO: Implement submission logic
   };
+
+  // Helper to call AI endpoints
+  const callAI = async (endpoint: string, body: any, onResult?: (result: string) => void) => {
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const res = await fetch(`/api/ai/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.result) {
+        if (onResult) onResult(data.result);
+        else setAiResult(data.result);
+      } else setAiError(data.error || 'No result');
+    } catch (err: any) {
+      setAiError(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // AI action handlers
+  const handleGenerateCode = () => callAI('code-generation', { prompt: description, language }, (result) => setCode(result));
+  const handleReview = () => callAI('code-review', { code }, (result) => setReviewResult(result));
+  const handleExplain = () => callAI('explanation', { code });
+  const handleBugDetect = () => callAI('bug-detection', { code });
+  const handleTestCases = () => callAI('test-cases', { code, count: 5 }, (result) => {
+    // Try to parse test cases from result (expecting Python unittest or similar)
+    // Fallback: show as raw text if parsing fails
+    const parsed = parseTestCases(result);
+    setTestResults(parsed.length ? parsed : [{ id: 1, input: '', expected: '', actual: '', raw: result }]);
+  });
+  const handlePlagiarism = () => callAI('plagiarism', { code });
+  const handleDocGen = () => callAI('documentation', { code });
+  const handleMultilingual = () => callAI('multilingual', { prompt: 'Explique ce que fait ce code : ' + code });
+  const handleAssistant = () => callAI('assistant', { question: 'How do I solve this problem?' });
+  const handleTextGen = () => callAI('text-generation', { prompt: 'Summarize this code: ' + code });
+
+  // Parse test cases from AI output (very basic, can be improved)
+  function parseTestCases(aiText: string): any[] {
+    // Try to extract test cases from Python unittest format
+    const cases: any[] = [];
+    const regex = /def (test_\w+)\(self\):[\s\S]*?nums = ([^\n]+)[\s\S]*?target = ([^\n]+)[\s\S]*?expected = ([^\n]+)/g;
+    let match;
+    let id = 1;
+    while ((match = regex.exec(aiText)) !== null) {
+      cases.push({
+        id: id++,
+        input: `nums=${match[2]}, target=${match[3]}`,
+        expected: match[4],
+        actual: '',
+        passed: null
+      });
+    }
+    // Fallback: try to extract from markdown or list
+    if (cases.length === 0) {
+      const lines = aiText.split('\n').filter(l => l.trim());
+      lines.forEach((line, idx) => {
+        if (/input/i.test(line) && /expected/i.test(line)) {
+          const input = line.match(/input:?\s*([^,]+)/i)?.[1] || '';
+          const expected = line.match(/expected:?\s*([^,]+)/i)?.[1] || '';
+          cases.push({ id: idx + 1, input, expected, actual: '', passed: null });
+        }
+      });
+    }
+    return cases;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
@@ -90,16 +179,7 @@ def two_sum(nums, target):
               <TabsContent value="description" className="mt-6">
                 <div className="prose prose-invert max-w-none">
                   <p className="text-slate-300 leading-relaxed mb-4">
-                    Given an array of integers <code>nums</code> and an integer <code>target</code>, 
-                    return indices of the two numbers such that they add up to <code>target</code>.
-                  </p>
-                  
-                  <p className="text-slate-300 leading-relaxed mb-4">
-                    You may assume that each input would have exactly one solution, and you may not use the same element twice.
-                  </p>
-                  
-                  <p className="text-slate-300 leading-relaxed mb-6">
-                    You can return the answer in any order.
+                    {description}
                   </p>
                   
                   <div className="bg-slate-800 p-4 rounded-lg mb-6">
@@ -133,11 +213,12 @@ def two_sum(nums, target):
               
               <TabsContent value="testcases" className="mt-6">
                 <div className="space-y-4">
-                  {testResults.map(test => (
-                    <Card key={test.id} className="bg-slate-800 border-slate-700">
+                  {testResults.length === 0 && <div className="text-slate-400">No test cases run yet.</div>}
+                  {testResults.map((test, idx) => (
+                    <Card key={idx} className="bg-slate-800 border-slate-700">
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm text-white">Test Case {test.id}</CardTitle>
+                          <CardTitle className="text-sm text-white">Test Case {idx + 1}</CardTitle>
                           <div className="flex items-center space-x-1">
                             {test.passed ? (
                               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -235,6 +316,24 @@ def two_sum(nums, target):
               </div>
             </div>
           </div>
+
+          {/* AI Buttons */}
+          <div className="flex flex-wrap gap-2 my-2">
+            <Button size="sm" onClick={handleGenerateCode}>Generate Code</Button>
+            <Button size="sm" onClick={handleReview}>Review Code</Button>
+            <Button size="sm" onClick={handleExplain}>Explain Code</Button>
+            <Button size="sm" onClick={handleBugDetect}>Detect Bugs</Button>
+            <Button size="sm" onClick={handleTestCases}>Generate Test Cases</Button>
+            <Button size="sm" onClick={handlePlagiarism}>Plagiarism Check</Button>
+            <Button size="sm" onClick={handleDocGen}>Generate Docs</Button>
+            <Button size="sm" onClick={handleMultilingual}>Multilingual</Button>
+            <Button size="sm" onClick={handleAssistant}>Ask Assistant</Button>
+            <Button size="sm" onClick={handleTextGen}>Summarize</Button>
+          </div>
+          {aiLoading && <div className="text-yellow-400">AI is thinking...</div>}
+          {aiError && <div className="text-red-400">Error: {aiError}</div>}
+          {reviewResult && <div className="bg-slate-800 text-white p-4 rounded mt-2 whitespace-pre-wrap max-h-64 overflow-y-auto">{reviewResult}</div>}
+          {aiResult && <div className="bg-slate-800 text-white p-4 rounded mt-2 whitespace-pre-wrap max-h-64 overflow-y-auto">{aiResult}</div>}
         </div>
       </div>
     </div>
