@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Code, Play, Upload, ArrowLeft, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Link } from 'react-router-dom';
 import { problems } from "@/data/problems";
+import CodeEditor from "@/components/CodeEditor";
 
 const Editor = () => {
   const [language, setLanguage] = useState('python');
@@ -297,11 +297,11 @@ def two_sum(nums, target):
 
           {/* Editor */}
           <div className="flex-1 flex flex-col">
-            <Textarea
+            <CodeEditor
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="flex-1 resize-none font-mono text-sm bg-slate-900 border-0 text-white focus:ring-0 focus:ring-offset-0"
-              placeholder="Write your code here..."
+              language={language}
+              onChange={setCode}
+              className="flex-1 min-h-[300px]"
             />
           </div>
 

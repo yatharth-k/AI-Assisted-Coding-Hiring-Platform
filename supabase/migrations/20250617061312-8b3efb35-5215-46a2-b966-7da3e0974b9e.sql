@@ -1,4 +1,3 @@
-
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -27,7 +26,9 @@ CREATE TABLE public.users (
     is_active BOOLEAN DEFAULT true,
     last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    xp INTEGER DEFAULT 0,
+    rank TEXT DEFAULT 'Novice'
 );
 
 -- Problem categories for organization
@@ -103,7 +104,8 @@ CREATE TABLE public.submissions (
     total_test_cases INTEGER DEFAULT 0,
     error_message TEXT,
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    judged_at TIMESTAMP WITH TIME ZONE
+    judged_at TIMESTAMP WITH TIME ZONE,
+    assessment_id UUID REFERENCES public.assessments(id)
 );
 
 -- Companies for hiring portal
@@ -263,6 +265,41 @@ CREATE TABLE public.xp_transactions (
     reference_type TEXT, -- 'submission', 'contest', 'achievement', etc.
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+CREATE TABLE contests (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  start_time TIMESTAMP NOT NULL,
+  end_time TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE submissions (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  contest_id INT REFERENCES contests(id),
+  problem_id INT REFERENCES problems(id),
+  code TEXT,
+  language TEXT,
+  result JSONB, -- {score, passed, time, details...}
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE contest_problems (
+  id SERIAL PRIMARY KEY,
+  contest_id INT REFERENCES contests(id) ON DELETE CASCADE,
+  problem_id INT REFERENCES problems(id) ON DELETE CASCADE
+);
+CREATE TABLE problems (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  input_format TEXT,
+  output_format TEXT,
+  sample_cases JSONB,
+  tags TEXT[],
+  difficulty TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
 
 -- User achievements/badges
 CREATE TABLE public.achievements (
@@ -276,6 +313,32 @@ CREATE TABLE public.achievements (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+create table companies (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null,
+  description text,
+  created_at timestamp with time zone default now()
+);
+create table assessments (
+  id uuid primary key default uuid_generate_v4(),
+  company_id uuid references companies(id) on delete cascade,
+  title text not null,
+  description text,
+  created_at timestamp with time zone default now()
+);
+create table assessment_problems (
+  id uuid primary key default uuid_generate_v4(),
+  assessment_id uuid references assessments(id) on delete cascade,
+  problem_id uuid references problems(id) on delete cascade
+);
+create table assessment_candidates (
+  id uuid primary key default uuid_generate_v4(),
+  assessment_id uuid references assessments(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  invited_at timestamp with time zone default now(),
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone
+);
 
 -- User achievement unlocks
 CREATE TABLE public.user_achievements (
@@ -283,6 +346,14 @@ CREATE TABLE public.user_achievements (
     achievement_id UUID REFERENCES public.achievements(id) ON DELETE CASCADE,
     unlocked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, achievement_id)
+);
+
+-- User badges
+CREATE TABLE public.user_badges (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    badge_id UUID REFERENCES public.badges(id) ON DELETE CASCADE,
+    earned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Indexes for performance
@@ -404,3 +475,10 @@ ALTER publication supabase_realtime ADD TABLE public.submissions;
 ALTER publication supabase_realtime ADD TABLE public.leaderboards;
 ALTER publication supabase_realtime ADD TABLE public.contest_participants;
 ALTER publication supabase_realtime ADD TABLE public.contests;
+
+CREATE TABLE public.badges (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    description TEXT,
+    icon_url TEXT
+);
