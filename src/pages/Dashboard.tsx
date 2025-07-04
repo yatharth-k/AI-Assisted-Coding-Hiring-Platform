@@ -144,7 +144,7 @@ const Dashboard = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white"
+                          className="border-purple-600 text-purple-400 hover:bg-purple-600"
                           onClick={() => navigate(`/editor/${problem.id}`)}
                         >
                           {problem.solved ? 'Review' : 'Solve'}
