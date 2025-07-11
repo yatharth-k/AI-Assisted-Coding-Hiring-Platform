@@ -21,6 +21,7 @@ import CompanyAssessment from "./pages/employers/[companyId]/assessment";
 
 const queryClient = new QueryClient();
 
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>

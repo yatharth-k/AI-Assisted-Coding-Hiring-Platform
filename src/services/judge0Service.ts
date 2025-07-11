@@ -24,8 +24,8 @@ interface Judge0Error {
 }
 
 class Judge0Service {
-  // Use our secure backend instead of direct Judge0 API
-  private readonly baseUrl = '/api';
+  // Use absolute URL for backend-to-backend requests
+  private readonly baseUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000/api';
   
   private readonly languageMap: Record<string, number> = {
     javascript: 63, // Node.js
