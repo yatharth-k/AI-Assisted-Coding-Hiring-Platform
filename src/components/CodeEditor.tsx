@@ -8,6 +8,7 @@ import { cpp } from "@codemirror/lang-cpp";
 import { java } from "@codemirror/lang-java";
 import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter, foldKeymap } from "@codemirror/language";
 
+
 interface CodeEditorProps {
   value: string;
   language: string;
