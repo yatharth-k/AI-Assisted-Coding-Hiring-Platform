@@ -399,6 +399,11 @@ const Index = () => {
                   Explore Dashboard
                 </button>
               </Link>
+              <Link to="/employers">
+                <button className="px-6 py-3 sm:px-8 sm:py-4 text-lg font-semibold rounded-2xl bg-white/10 text-white border-2 border-white/20 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all duration-200 hover:bg-white/20 hover:scale-105">
+                  Employer Assessments
+                </button>
+              </Link>
             </div>
           </div>
         </div>

@@ -514,6 +514,28 @@ const Dashboard = () => {
                 </TooltipTrigger>
                 <TooltipContent side="top">Random Practice</TooltipContent>
               </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button
+                    whileHover={{ scale: 1.13, boxShadow: '0 0 0 4px #a78bfa, 0 0 16px #7c3aed' }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 18, delay: 0.15 }}
+                    className="rounded-xl bg-gradient-to-tr from-violet-700 to-indigo-700 text-white shadow-md focus:outline-none transition-all duration-200 relative flex items-center justify-center w-12 h-12"
+                    aria-label="Employer Assessments"
+                    style={{ outline: 'none' }}
+                  >
+                    <Link to="/employers" className="flex items-center justify-center w-full h-full">
+                      <motion.span
+                        whileHover={{ scale: 1.18, filter: 'drop-shadow(0 0 8px #a78bfa)' }}
+                        transition={{ type: 'spring', stiffness: 350, damping: 18 }}
+                        className="flex items-center justify-center w-full h-full"
+                      >
+                        <User className="w-6 h-6" />
+                      </motion.span>
+                    </Link>
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Employer Assessments</TooltipContent>
+              </Tooltip>
             </TooltipProvider>
           </div>
         </motion.div>
