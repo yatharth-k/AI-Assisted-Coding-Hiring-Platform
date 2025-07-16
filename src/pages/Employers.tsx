@@ -67,7 +67,7 @@ export default function Employers() {
       <h1 className="text-3xl font-bold mb-8">SkillUp Employers & Job Assessments</h1>
       <div className="grid grid-cols-1 gap-6">
         {companies.map((company, idx) => (
-          <div key={company.id} className="bg-white rounded-xl shadow p-6 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div key={company.id} className="bg-white rounded-xl shadow p-6 flex flex-col md:flex-row md:items-center md:justify-between text-purple-700">
             <div>
               <h2 className="text-xl font-semibold text-gray-800">{company.name}</h2>
               <p className="text-gray-600 mt-1 mb-2">{company.description}</p>

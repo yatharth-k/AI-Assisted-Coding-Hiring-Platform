@@ -18,6 +18,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -61,12 +64,26 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				primary: '#8b5cf6',
+				accent: '#4ade80',
+				dark: '#1e1b4b',
+				light: '#f3f4f6',
+				glow: '#a78bfa',
+			},
+			boxShadow: {
+				card: '0 8px 24px rgba(0,0,0,0.2)',
+				glow: '0 0 20px #8b5cf6',
+			},
+			backgroundImage: {
+				'gradient-bg': 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				xl: '1.5rem',
+				'2xl': '2rem',
 			},
 			keyframes: {
 				'accordion-down': {

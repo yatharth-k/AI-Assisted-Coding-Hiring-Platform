@@ -130,7 +130,7 @@ export default function ProblemsAdminPage() {
       </Card>
       {(showForm || editing) && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl text-purple-700">
             <ProblemForm
               initialValues={editing || {}}
               onSave={handleSave}
@@ -143,7 +143,7 @@ export default function ProblemsAdminPage() {
       {/* Delete confirmation */}
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-purple-700">
             <div className="mb-4">Are you sure you want to delete this problem?</div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>

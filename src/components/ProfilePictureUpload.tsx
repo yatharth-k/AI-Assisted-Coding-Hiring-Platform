@@ -89,7 +89,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
           <Button
             variant="outline"
             size="sm"
-            className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0 bg-white border-2 border-white"
+            className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0 bg-white border-2 border-white text-purple-700"
             onClick={triggerFileInput}
           >
             <Camera className="h-4 w-4" />
